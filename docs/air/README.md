@@ -44,12 +44,29 @@ Air itself. The memory and thread defaults are *not* benchmarked: they are conse
 for an 8 GB, thermally limited machine, unit-tested for their arithmetic, and overridable.
 Nothing here was run on a Mac; the macOS build and Metal path are unverified until you run them.
 
-## Plugging in your UI
+## The Darkroom UI
 
-The entire look lives in `crates/ui-egui/src/theme.rs`: a `Tokens` struct (~30 colours: chrome,
-canvas, text levels, accent, …), `apply()` for egui visuals/shadows/rounding, and font setup.
-Send a mockup or palette + fonts and only that file changes; panels read colours from `Tokens`.
-Keep fonts OFL/CC0 and add an entry to `assets/ATTRIBUTION.md` (`cargo xtask assets` enforces it).
+The look is the GROOVEHAUS "Darkroom Editor" design (dark variant): obsidian canvas, bone type,
+one sun-yellow accent per frame, hairline rules, square corners, no gloss.
+
+| Piece | Where |
+|---|---|
+| Palette (bone @ 55/42/30/25/18 % over black, sun #E9B547), metrics, radii, motion | `crates/ui-egui/src/theme.rs` (`Tokens`, `apply`) |
+| Fonts: Rajdhani (UI), Bebas Neue (headlines), Cormorant Garamond Italic (notes) | `assets/fonts/`, licence `OFL-Groovehaus-brand-fonts.txt`, `assets/ATTRIBUTION.md` |
+| Tracked-caps text, bar-thumb slider with centre tick, `+`/`−` section headers, outlined chips | `crates/ui-egui/src/widgets.rs` |
+| `01 — LIGHT` eyebrow + Bebas `EDIT` header | `crates/ui-egui/src/panels/edit.rs` |
+| GROOVEHAUS · DARKROOM wordmark, tracked search field | `crates/ui-egui/src/panels/topbar.rs` |
+| Copy-settings chip | `crates/ui-egui/src/panels/bottombar.rs` |
+| Right panel 340 pt wide (mockup) | `crates/ui-egui/src/state.rs` |
+
+Deliberate deviations from the mockup, for a working editor: the histogram keeps its red/green/blue
+channels (a monochrome histogram hides clipping per channel); the reject flag and mask overlay stay
+flame red (state needs a distinct colour); dim text is bone @ 42 % instead of 30 % (30 % on black is
+about 2.4:1 contrast, too faint for metadata you need to read); the tool strip keeps icons rather
+than three-letter labels.
+
+Not done: the **Bone** variant (cream surface, 32 px rounded floating cards, pill buttons, round slider
+thumbs). It is a layout change, not a palette swap, so it needs its own pass.
 
 ## Licence note
 

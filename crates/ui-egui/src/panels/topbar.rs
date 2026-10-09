@@ -6,7 +6,10 @@ use serde_json::json;
 use crate::LightcraftApp;
 use crate::icons::{Icon, paint};
 use crate::theme::Tokens;
-use crate::widgets::{icon_button, register};
+use crate::widgets::{icon_button, register, tracked_text, tracked_width};
+
+/// Room the GROOVEHAUS · DARKROOM wordmark takes right of the back/forward buttons.
+const WORDMARK_W: f32 = 256.0;
 
 pub fn show(app: &mut LightcraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
@@ -19,7 +22,7 @@ pub fn show(app: &mut LightcraftApp, ui: &mut egui::Ui) {
             let mut sw = 640.0f32.min(full.width() - 460.0).max(200.0);
             if !app.native_menu {
                 // leave room for the in-window menus left of the (centred) search field
-                let menus_right = full.left() + 140.0 + crate::menubar::bar_width(ui) + 24.0;
+                let menus_right = full.left() + 140.0 + WORDMARK_W + crate::menubar::bar_width(ui) + 24.0;
                 sw = sw.min(2.0 * (full.center().x - menus_right)).max(200.0);
             }
             let search_left = full.center().x - sw / 2.0;
@@ -33,6 +36,24 @@ pub fn show(app: &mut LightcraftApp, ui: &mut egui::Ui) {
                     let _ = app.run("view.back", json!({}));
                 }
                 icon_button(ui, "forward", Icon::Forward, vec2(30.0, 30.0), false, false, "Forward");
+                // brand wordmark: Bebas "GROOVEHAUS", a dot, tracked "DARKROOM" (no room at narrow widths)
+                if !app.native_menu || search_left - ui.cursor().left() > WORDMARK_W + 16.0 {
+                    ui.add_space(14.0);
+                    let (wr, _) = ui.allocate_exact_size(vec2(WORDMARK_W - 14.0, 30.0), Sense::hover());
+                    let g = ui.painter().layout_no_wrap("GROOVEHAUS".into(), t.display(24.0), t.text);
+                    let gw = g.size().x + 10.0 * 0.14 * 24.0;
+                    tracked_text(ui.painter(), wr.left_center(), Align2::LEFT_CENTER, "GROOVEHAUS", t.display(24.0), t.text, 0.14);
+                    ui.painter().text(pos2(wr.left() + gw + 8.0, wr.center().y), Align2::LEFT_CENTER, "\u{00b7}", t.font(14.0), t.text_label);
+                    tracked_text(
+                        ui.painter(),
+                        pos2(wr.left() + gw + 22.0, wr.center().y + 1.0),
+                        Align2::LEFT_CENTER,
+                        "DARKROOM",
+                        t.semibold(12.0),
+                        t.text_label,
+                        0.28,
+                    );
+                }
                 if !app.native_menu {
                     // no native menu bar (web, Windows, Linux): menus in the top bar
                     ui.add_space(10.0);
@@ -49,7 +70,7 @@ pub fn show(app: &mut LightcraftApp, ui: &mut egui::Ui) {
             let focused = ui.memory(|m| m.has_focus(id));
             ui.painter().rect(
                 sr,
-                4.0,
+                2.0,
                 if focused { t.canvas } else { t.field },
                 Stroke::new(1.0, if focused { t.accent } else { t.field_border }),
                 StrokeKind::Inside,
@@ -59,11 +80,12 @@ pub fn show(app: &mut LightcraftApp, ui: &mut egui::Ui) {
                 ui.new_child(egui::UiBuilder::new().max_rect(sr.shrink2(vec2(10.0, 4.0))).layout(egui::Layout::left_to_right(egui::Align::Center)));
             let empty = app.ui.search.is_empty();
             if empty && !focused {
-                let g = child.painter().layout_no_wrap(crate::i18n::tr("Search Photos").into(), t.font(13.5), t.text_dim);
-                let w = g.size().x + 24.0;
+                let ph = crate::i18n::tr("Search Photos").to_uppercase();
+                let pf = t.semibold(12.0);
+                let w = tracked_width(child.painter(), &ph, pf.clone(), 0.2) + 24.0;
                 let x0 = sr.center().x - w / 2.0;
                 paint(child.painter(), Rect::from_min_size(pos2(x0, sr.center().y - 8.0), vec2(16.0, 16.0)), Icon::Search, t.text_dim);
-                child.painter().galley(pos2(x0 + 24.0, sr.center().y - g.size().y / 2.0), g, t.text_dim);
+                tracked_text(child.painter(), pos2(x0 + 24.0, sr.center().y), Align2::LEFT_CENTER, &ph, pf, t.text_dim, 0.2);
             }
             let resp = child.add(
                 egui::TextEdit::singleline(&mut app.ui.search)

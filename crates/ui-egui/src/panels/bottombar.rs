@@ -99,18 +99,27 @@ fn centre(app: &mut LightcraftApp, ui: &mut egui::Ui, full: Rect, from: f32, to:
     if !with_copy {
         return;
     }
-    let copy_r = Rect::from_min_size(pos2(pill.right() + 10.0, pill.top()), vec2(136.0, 30.0));
+    let copy_r = Rect::from_min_size(pos2(pill.right() + 10.0, pill.top()), vec2(176.0, 30.0));
     let has_clip = app.session.clipboard.is_some();
     let label = if has_clip { "Paste Edit Settings" } else { "Copy Edit Settings" };
     let cresp = ui.interact(copy_r, egui::Id::new("copy-settings"), Sense::click());
     register(ui.ctx(), "button:copySettings", copy_r);
-    ui.painter().rect_filled(copy_r, 15.0, if cresp.hovered() { t.hover } else { t.canvas });
-    ui.painter().text(
+    let copy_c = if active.is_some() { t.text } else { t.text_disabled };
+    ui.painter().rect(
+        copy_r,
+        egui::CornerRadius::same(2),
+        if cresp.hovered() { t.hover } else { t.canvas },
+        egui::Stroke::new(1.0, if cresp.hovered() && active.is_some() { t.text_label } else { t.button_border }),
+        egui::StrokeKind::Inside,
+    );
+    crate::widgets::tracked_text(
+        ui.painter(),
         copy_r.center(),
         Align2::CENTER_CENTER,
-        crate::i18n::tr(label),
-        t.font(13.0),
-        if active.is_some() { t.text_label } else { t.text_disabled },
+        &crate::i18n::tr(label).to_uppercase(),
+        t.semibold(12.0),
+        copy_c,
+        0.18,
     );
     if cresp.clicked() && active.is_some() {
         let _ = if has_clip { app.run("develop.paste", json!({})) } else { app.run("develop.copy", json!({})) };

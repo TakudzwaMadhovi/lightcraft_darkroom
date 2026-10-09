@@ -8,6 +8,29 @@ use lightcraft_develop::{ControlSpec, Track};
 use crate::icons::{Icon, paint};
 use crate::theme::Tokens;
 
+/// Letter-spaced text, laid out as one galley and anchored like `Painter::text`. `em` is the extra
+/// spacing in ems (the design system's eyebrow tracking is 0.22 em, tags 0.18 em). Returns the
+/// painted rect. The trailing space egui adds after the last glyph is trimmed so right-anchored
+/// text lines up with its neighbours.
+pub fn tracked_text(p: &egui::Painter, pos: egui::Pos2, align: Align2, text: &str, font: egui::FontId, color: Color32, em: f32) -> Rect {
+    let spacing = font.size * em;
+    let mut job = egui::text::LayoutJob::default();
+    job.append(text, 0.0, egui::text::TextFormat { font_id: font, color, extra_letter_spacing: spacing, ..Default::default() });
+    let galley = p.layout_job(job);
+    let size = vec2((galley.size().x - spacing).max(0.0), galley.size().y);
+    let rect = align.anchor_size(pos, size);
+    p.galley(rect.min, galley, color);
+    rect
+}
+
+/// Width of [`tracked_text`] for `text`, for sizing chips and buttons.
+pub fn tracked_width(p: &egui::Painter, text: &str, font: egui::FontId, em: f32) -> f32 {
+    let spacing = font.size * em;
+    let mut job = egui::text::LayoutJob::default();
+    job.append(text, 0.0, egui::text::TextFormat { font_id: font, color: Color32::WHITE, extra_letter_spacing: spacing, ..Default::default() });
+    (p.layout_job(job).size().x - spacing).max(0.0)
+}
+
 // ------------------------------------------------------------------ automation registry
 
 #[derive(Clone, Default)]
@@ -109,7 +132,7 @@ fn track_stops(track: &Track) -> Option<Vec<Color32>> {
     })
 }
 
-fn paint_track(ui: &Ui, rect: Rect, track: &Track, t: &Tokens, thumb_x: f32, ring: f32) {
+fn paint_track(ui: &Ui, rect: Rect, track: &Track, t: &Tokens) {
     let p = ui.painter();
     let y = rect.center().y;
     let h = 1.0;
@@ -127,10 +150,8 @@ fn paint_track(ui: &Ui, rect: Rect, track: &Track, t: &Tokens, thumb_x: f32, rin
             p.rect_filled(Rect::from_min_max(pos2(x0, y - h - 0.5), pos2(x1 + 0.5, y + h + 0.5)), 0.0, c);
         }
     } else {
-        p.rect_filled(Rect::from_min_max(pos2(rect.left(), y - h), pos2(rect.right(), y + h)), 1.0, t.track);
+        p.rect_filled(Rect::from_min_max(pos2(rect.left(), y - 0.5), pos2(rect.right(), y + 0.5)), 0.0, t.track);
     }
-    // gap around the hollow thumb
-    p.rect_filled(Rect::from_center_size(pos2(thumb_x, y), vec2(ring * 2.0 + 4.0, 6.0)), 0.0, t.chrome);
 }
 
 /// Result of a slider interaction this frame.
@@ -221,25 +242,33 @@ pub fn slider(ui: &mut Ui, spec: &ControlSpec, value: f64, enabled: bool, label_
     }
     // paint
     let hovered = resp.hovered() || resp.dragged();
-    let text_c = if enabled { t.text_label } else { t.text_disabled };
+    let label_c = if enabled { t.text_label } else { t.text_disabled };
+    let value_c = if enabled { t.text } else { t.text_disabled };
     let p = ui.painter();
-    p.text(label_rect.left_center(), Align2::LEFT_CENTER, crate::i18n::tr(label_override.unwrap_or(spec.label)), t.font(12.5), text_c);
+    // label: muted, tracked caps; value: bone (design system: label 55 %, value full)
+    let label = crate::i18n::tr(label_override.unwrap_or(spec.label)).to_uppercase();
+    tracked_text(p, label_rect.left_center(), Align2::LEFT_CENTER, &label, t.semibold(12.0), label_c, 0.14);
     let shown = if spec.id == "wb.temp" { format!("{v:.0}") } else { spec.format(v).replace("+0.00", "0").replace("-0.00", "0") };
     let shown = if shown == "+0" || shown == "-0" { "0".to_string() } else { shown };
-    p.text(label_rect.right_center(), Align2::RIGHT_CENTER, shown, t.font(12.5), text_c);
-    let ring = 7.0;
+    p.text(label_rect.right_center(), Align2::RIGHT_CENTER, shown, t.semibold(13.0), value_c);
     let tx = to_x(v);
-    paint_track(ui, track_rect, &spec.track, &t, tx, ring);
+    paint_track(ui, track_rect, &spec.track, &t);
     let p = ui.painter();
-    let ring_c = if !enabled {
+    let y = track_rect.center().y;
+    // a tick where the default sits (the zero of a bipolar slider), when it is inside the range
+    if spec.default > spec.min && spec.default < spec.max {
+        let dx = to_x(spec.default);
+        p.line_segment([pos2(dx, y - 4.5), pos2(dx, y + 4.5)], Stroke::new(1.0, t.text_label));
+    }
+    let thumb_c = if !enabled {
         t.text_disabled
     } else if hovered {
         t.thumb_hover
     } else {
         t.thumb
     };
-    p.circle_filled(pos2(tx, track_rect.center().y), ring, t.chrome);
-    p.circle_stroke(pos2(tx, track_rect.center().y), ring, Stroke::new(2.0, ring_c));
+    // the thumb is a short bone bar, not a ring
+    p.rect_filled(Rect::from_center_size(pos2(tx, y), vec2(2.0, 14.0)), 0.0, thumb_c);
     if hovered {
         ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
     }
@@ -264,16 +293,16 @@ pub fn section_header(ui: &mut Ui, id: &str, title: &str, open: bool, enabled: O
     register(ui.ctx(), format!("section:{id}"), r);
     let p = ui.painter();
     if resp.hovered() {
-        p.rect_filled(r, 0.0, t.chrome.gamma_multiply(1.06));
+        p.rect_filled(r, 0.0, t.hover);
     }
-    let chev = Rect::from_center_size(pos2(r.left() + 30.0, r.center().y), vec2(14.0, 14.0));
-    paint(p, chev, if open { Icon::ChevronDown } else { Icon::ChevronRight }, t.text_label);
-    p.text(pos2(r.left() + 44.0, r.center().y), Align2::LEFT_CENTER, title, t.semibold(14.0), t.text);
+    tracked_text(p, pos2(r.left() + 24.0, r.center().y), Align2::LEFT_CENTER, &title.to_uppercase(), t.semibold(13.0), t.text, 0.22);
+    p.text(pos2(r.right() - 24.0, r.center().y), Align2::RIGHT_CENTER, if open { "\u{2212}" } else { "+" }, t.font(16.0), t.text_label);
+    p.line_segment([pos2(r.left(), r.bottom() - 0.5), pos2(r.right(), r.bottom() - 0.5)], Stroke::new(1.0, t.divider));
     let mut toggled = None;
     if let Some(on) = enabled
         && (resp.hovered() || !on)
     {
-        let eye = Rect::from_center_size(pos2(r.right() - 34.0, r.center().y), vec2(18.0, 18.0));
+        let eye = Rect::from_center_size(pos2(r.right() - 58.0, r.center().y), vec2(18.0, 18.0));
         let er = ui.interact(eye, ui.id().with(("eye", id)), Sense::click());
         register(ui.ctx(), format!("sectionEye:{id}"), eye);
         paint(ui.painter(), eye, Icon::Eye, if on { t.icon } else { t.text_disabled });
@@ -306,9 +335,9 @@ pub fn flyout_row(ui: &mut Ui, id: &str, title: &str, icon: Icon, open: bool) ->
     resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::CollapsingHeader, true, open, title));
     register(ui.ctx(), format!("flyout:{id}"), r);
     let p = ui.painter();
-    p.rect_filled(r, 4.0, if resp.hovered() { t.hover.gamma_multiply(0.8) } else { t.inset });
+    p.rect(r, CornerRadius::same(2), if resp.hovered() { t.hover } else { t.inset }, Stroke::new(1.0, t.divider), StrokeKind::Inside);
     let tile = Rect::from_min_size(pos2(r.left() + 4.0, r.top() + 4.0), vec2(r.height() - 8.0, r.height() - 8.0));
-    p.rect_filled(tile, 3.0, t.chrome.gamma_multiply(1.15));
+    p.rect_filled(tile, 2.0, t.hover);
     paint(p, tile.shrink(3.0), icon, t.text_label);
     p.text(pos2(tile.right() + 10.0, r.center().y), Align2::LEFT_CENTER, title, t.semibold(13.0), t.text_label);
     paint(
@@ -323,10 +352,13 @@ pub fn flyout_row(ui: &mut Ui, id: &str, title: &str, icon: Icon, open: bool) ->
 /// A small bordered text button (Auto, B&W, HDR…).
 pub fn text_button(ui: &mut Ui, id: &str, label: &str, active: bool) -> Response {
     let label = if id.starts_with("labelSet-") { label } else { crate::i18n::tr(label) };
+    let label_caps = label.to_uppercase();
     let t = Tokens::get(ui.ctx());
+    // tracked caps are wider than sentence case: tight tracking and padding keep rows of chips (the
+    // export dialog's) inside the window
     let font = t.semibold(11.5);
-    let galley = ui.painter().layout_no_wrap(label.to_string(), font, t.text);
-    let size = vec2((galley.size().x + 18.0).max(37.0), 24.0);
+    let text_w = tracked_width(ui.painter(), &label_caps, font.clone(), 0.08);
+    let size = vec2((text_w + 16.0).max(36.0), 26.0);
     let (r, resp) = ui.allocate_exact_size(size, Sense::click());
     resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, active, label));
     register(ui.ctx(), format!("button:{id}"), r);
@@ -337,9 +369,10 @@ pub fn text_button(ui: &mut Ui, id: &str, label: &str, active: bool) -> Response
     } else {
         t.button
     };
+    let border = if active || resp.hovered() { t.text_label } else { t.button_border };
     let p = ui.painter();
-    p.rect(r, CornerRadius::same(4), fill, Stroke::new(1.0, t.button_border), StrokeKind::Inside);
-    p.galley(r.center() - galley.size() / 2.0, galley, t.text);
+    p.rect(r, CornerRadius::same(2), fill, Stroke::new(1.0, border), StrokeKind::Inside);
+    tracked_text(p, r.center(), Align2::CENTER_CENTER, &label_caps, font, t.text, 0.08);
     resp
 }
 
@@ -388,10 +421,17 @@ pub fn icon_button(ui: &mut Ui, id: &str, icon: Icon, size: egui::Vec2, active: 
     register(ui.ctx(), format!("icon:{id}"), r);
     let p = ui.painter();
     let sq = Rect::from_center_size(r.center(), vec2(32.0f32.min(size.x), 32.0f32.min(size.y)));
-    if active {
-        p.rect_filled(sq, 4.0, t.tool_active);
+    if size.x >= 48.0 {
+        // tool strip: the active tool carries a 2 px bone bar on its left edge (Darkroom), no fill
+        if active {
+            p.rect_filled(Rect::from_min_size(pos2(r.left().max(ui.clip_rect().left()) + 1.0, sq.top()), vec2(2.0, sq.height())), 0.0, t.text);
+        } else if resp.hovered() && enabled {
+            p.rect_filled(sq, 0.0, t.hover);
+        }
+    } else if active {
+        p.rect_filled(sq, 2.0, t.tool_active);
     } else if resp.hovered() && enabled {
-        p.rect_filled(sq, 4.0, t.hover.gamma_multiply(0.7));
+        p.rect_filled(sq, 2.0, t.hover);
     }
     let c = if !enabled {
         t.text_disabled

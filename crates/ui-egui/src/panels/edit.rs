@@ -91,9 +91,24 @@ pub fn show(app: &mut LightcraftApp, ui: &mut egui::Ui, id: PhotoId) {
     if app.ui.soft_proof {
         soft_proofing(app, ui, id);
     }
-    // header: Edit + Auto / B&W / HDR
-    let (hr, _) = ui.allocate_exact_size(vec2(ui.available_width(), 40.0), Sense::hover());
-    ui.painter().text(pos2(hr.left() + 24.0, hr.bottom() - 10.0), Align2::LEFT_CENTER, crate::i18n::tr("Edit"), t.semibold(15.0), t.text);
+    // header: sun eyebrow, Bebas "EDIT", then Auto / B&W / Reset (the single accent of the frame)
+    let (hr, _) = ui.allocate_exact_size(vec2(ui.available_width(), 74.0), Sense::hover());
+    crate::widgets::tracked_text(
+        ui.painter(),
+        pos2(hr.left() + 24.0, hr.top() + 20.0),
+        Align2::LEFT_CENTER,
+        &format!("01 \u{2014} {}", crate::i18n::tr("Light").to_uppercase()),
+        t.semibold(12.5),
+        t.accent,
+        0.22,
+    );
+    ui.painter().text(
+        pos2(hr.left() + 24.0, hr.bottom() - 18.0),
+        Align2::LEFT_CENTER,
+        crate::i18n::tr("Edit").to_uppercase(),
+        t.display(46.0),
+        t.text,
+    );
     egui::Frame::NONE.inner_margin(egui::Margin { left: 24, right: 22, top: 8, bottom: 14 }).show(ui, |ui| {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 8.0;

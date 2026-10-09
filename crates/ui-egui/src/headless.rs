@@ -819,7 +819,8 @@ mod tests {
     /// accessibility and place fields reach the photo.
     #[test]
     fn info_fields_keep_typing_and_save() {
-        let mut h = demo([1300.0, 1000.0]);
+        // tall enough that the lowest field (city) is on screen: the Darkroom rows are ~3 px taller
+        let mut h = demo([1300.0, 1100.0]);
         let t = Duration::from_secs(10);
         h.request("ui.set", json!({"view": "detail", "right": "info"}), t);
         h.settle(SETTLE);
@@ -1250,7 +1251,8 @@ mod tests {
     /// Info panel → Edit Capture Time…: a time-zone shift moves the selected photos.
     #[test]
     fn capture_time_dialog_shifts_time_zone() {
-        let mut h = demo([1200.0, 900.0]);
+        // tall enough that the Capture Time row is on screen (Darkroom rows are ~3 px taller)
+        let mut h = demo([1200.0, 1000.0]);
         let t = Duration::from_secs(10);
         let id = h.app.session.visible_cloned()[0];
         h.request("engine.execute", json!({"command": "library.select", "params": {"ids": [id.0]}}), t);

@@ -1,11 +1,17 @@
-//! Design tokens (colours, sizes, fonts). Values measured from black-box observation of the
-//! reference app's dark theme (see plan/lightroom/10-observed-ui.md); everything is our own code.
+//! Design tokens (colours, sizes, fonts). Air edition: the GROOVEHAUS "Darkroom" design system.
+//! Obsidian canvas, bone type, a single sun-yellow accent, hairline rules, square corners, no
+//! gloss. Three type voices: Rajdhani (system/UI), Bebas Neue (display), Cormorant Garamond
+//! italic (editorial). Source palette: bone #F2E9D5 at 55 % / 42 % / 30 % / 25 % / 18 % over black.
 
 use std::sync::Arc;
 
 use egui::{Color32, CornerRadius, FontData, FontDefinitions, FontFamily, FontId, Stroke, Visuals};
 
 pub const FONT_SEMIBOLD: &str = "semibold";
+/// Bebas Neue: headlines, always uppercase.
+pub const FONT_DISPLAY: &str = "display";
+/// Cormorant Garamond Italic: the brand's human voice (captions, notes).
+pub const FONT_EDITORIAL: &str = "editorial";
 
 #[derive(Clone, Copy, Debug)]
 pub struct Tokens {
@@ -54,42 +60,43 @@ pub struct Tokens {
 
 impl Default for Tokens {
     fn default() -> Self {
+        let c = |r: u8, g: u8, b: u8| Color32::from_rgb(r, g, b);
         Tokens {
-            chrome: Color32::from_rgb(0x2d, 0x2d, 0x2d),
-            canvas: Color32::from_rgb(0x1c, 0x1c, 0x1c),
-            grid_bg: Color32::from_rgb(0x0f, 0x0f, 0x0f),
-            cell: Color32::from_rgb(0x1c, 0x1c, 0x1c),
-            cell_selected: Color32::from_rgb(0x2d, 0x2d, 0x2d),
-            divider: Color32::from_rgb(0x1c, 0x1c, 0x1c),
-            inset: Color32::from_rgb(0x23, 0x23, 0x23),
-            field: Color32::from_rgb(0x22, 0x22, 0x22),
-            field_border: Color32::from_rgb(0x3c, 0x3c, 0x3c),
-            button: Color32::from_rgb(0x24, 0x24, 0x24),
-            button_border: Color32::from_rgb(0x4c, 0x4c, 0x4c),
-            hover: Color32::from_rgb(0x3a, 0x3a, 0x3a),
-            pressed: Color32::from_rgb(0x3f, 0x3f, 0x3f),
-            tool_active: Color32::from_rgb(0x3f, 0x3f, 0x3f),
-            text: Color32::from_rgb(0xe2, 0xe2, 0xe2),
-            text_label: Color32::from_rgb(0xbc, 0xbc, 0xbc),
-            text_dim: Color32::from_rgb(0x8e, 0x8e, 0x8e),
-            text_disabled: Color32::from_rgb(0x5c, 0x5c, 0x5c),
-            icon: Color32::from_rgb(0x9a, 0x9a, 0x9a),
-            track: Color32::from_rgb(0x5a, 0x5a, 0x5a),
-            thumb: Color32::from_rgb(0xa0, 0xa0, 0xa0),
-            thumb_hover: Color32::from_rgb(0xe0, 0xe0, 0xe0),
-            accent: Color32::from_rgb(0x01, 0x65, 0xdd),
-            star: Color32::from_rgb(0xd8, 0xd8, 0xd8),
-            pick: Color32::from_rgb(0xf0, 0xf0, 0xf0),
-            reject: Color32::from_rgb(0xe0, 0x4a, 0x4a),
-            caution: Color32::from_rgb(0xe3, 0xa8, 0x3c),
-            mask_overlay: Color32::from_rgba_unmultiplied(0xe0, 0x20, 0x30, 110),
-            top_bar_h: 42.0,
-            bottom_bar_h: 48.0,
-            panel_w: 270.0,
-            strip_w: 48.0,
+            chrome: c(0x00, 0x00, 0x00),
+            canvas: c(0x00, 0x00, 0x00),
+            grid_bg: c(0x00, 0x00, 0x00),
+            cell: c(0x1c, 0x1c, 0x1c), // ash
+            cell_selected: c(0x1c, 0x1c, 0x1c),
+            divider: c(0x2c, 0x2a, 0x26), // bone @ 18 %
+            inset: c(0x0b, 0x0b, 0x0a),
+            field: c(0x00, 0x00, 0x00),
+            field_border: c(0x3d, 0x3a, 0x35), // bone @ 25 %
+            button: c(0x00, 0x00, 0x00),
+            button_border: c(0x3d, 0x3a, 0x35),
+            hover: c(0x1c, 0x1c, 0x1c),
+            pressed: c(0x26, 0x25, 0x20),
+            tool_active: c(0x1c, 0x1c, 0x1c),
+            text: c(0xf2, 0xe9, 0xd5),          // bone
+            text_label: c(0x85, 0x80, 0x75),    // bone @ 55 %
+            text_dim: c(0x66, 0x62, 0x59),      // bone @ 42 % (30 % in the mockup; lifted for legibility)
+            text_disabled: c(0x3d, 0x3a, 0x35), // bone @ 25 %
+            icon: c(0x85, 0x80, 0x75),
+            track: c(0x49, 0x46, 0x40), // bone @ 30 %
+            thumb: c(0xf2, 0xe9, 0xd5),
+            thumb_hover: c(0xff, 0xf7, 0xe0),
+            accent: c(0xe9, 0xb5, 0x47), // sun: one per frame
+            star: c(0xf2, 0xe9, 0xd5),
+            pick: c(0xf2, 0xe9, 0xd5),
+            reject: c(0xdc, 0x38, 0x2f), // flame
+            caution: c(0xe9, 0xb5, 0x47),
+            mask_overlay: Color32::from_rgba_unmultiplied(0xdc, 0x38, 0x2f, 110),
+            top_bar_h: 52.0,
+            bottom_bar_h: 52.0,
+            panel_w: 340.0,
+            strip_w: 56.0,
             slider_row_h: 45.0,
-            section_h: 57.0,
-            film_h: 142.0,
+            section_h: 52.0,
+            film_h: 112.0,
         }
     }
 }
@@ -103,6 +110,12 @@ impl Tokens {
     }
     pub fn semibold(&self, size: f32) -> FontId {
         FontId::new(size, FontFamily::Name(FONT_SEMIBOLD.into()))
+    }
+    pub fn display(&self, size: f32) -> FontId {
+        FontId::new(size, FontFamily::Name(FONT_DISPLAY.into()))
+    }
+    pub fn editorial(&self, size: f32) -> FontId {
+        FontId::new(size, FontFamily::Name(FONT_EDITORIAL.into()))
     }
 }
 
@@ -118,6 +131,15 @@ pub fn font_definitions(craft: &'static [lightcraft_engine::CraftFont]) -> FontD
     let mut fonts = FontDefinitions::default();
     fonts.font_data.insert("Inter".into(), Arc::new(FontData::from_static(include_bytes!("../../../assets/fonts/Inter-Regular.ttf"))));
     fonts.font_data.insert("Inter-SemiBold".into(), Arc::new(FontData::from_static(include_bytes!("../../../assets/fonts/Inter-SemiBold.ttf"))));
+    // GROOVEHAUS brand fonts (OFL). Inter stays behind them for glyphs they lack.
+    fonts.font_data.insert("Rajdhani".into(), Arc::new(FontData::from_static(include_bytes!("../../../assets/fonts/Rajdhani-Medium.ttf"))));
+    fonts
+        .font_data
+        .insert("Rajdhani-SemiBold".into(), Arc::new(FontData::from_static(include_bytes!("../../../assets/fonts/Rajdhani-SemiBold.ttf"))));
+    fonts.font_data.insert("Bebas".into(), Arc::new(FontData::from_static(include_bytes!("../../../assets/fonts/BebasNeue-Regular.ttf"))));
+    fonts
+        .font_data
+        .insert("Cormorant-Italic".into(), Arc::new(FontData::from_static(include_bytes!("../../../assets/fonts/CormorantGaramond-Italic.ttf"))));
     // Craft-fonts faces in preference order for a family drawn in `style`.
     let fallback = |style: &str| {
         lightcraft_engine::fonts::cjk_fallback(craft, crate::i18n::language().script(), style)
@@ -132,14 +154,21 @@ pub fn font_definitions(craft: &'static [lightcraft_engine::CraftFont]) -> FontD
         }
     }
     let defaults: Vec<String> = fonts.families.get(&FontFamily::Proportional).cloned().unwrap_or_default();
-    let mut prop = vec!["Inter".to_string()];
+    let mut prop = vec!["Rajdhani".to_string(), "Inter".to_string()];
     prop.extend(defaults.iter().cloned());
     prop.extend(regular);
-    fonts.families.insert(FontFamily::Proportional, prop);
-    let mut semi = vec!["Inter-SemiBold".to_string()];
+    fonts.families.insert(FontFamily::Proportional, prop.clone());
+    let mut semi = vec!["Rajdhani-SemiBold".to_string(), "Inter-SemiBold".to_string()];
     semi.extend(defaults);
     semi.extend(bold);
+    let (display_tail, editorial_tail) = (semi.clone(), prop.clone());
     fonts.families.insert(FontFamily::Name(FONT_SEMIBOLD.into()), semi);
+    let mut display = vec!["Bebas".to_string()];
+    display.extend(display_tail);
+    fonts.families.insert(FontFamily::Name(FONT_DISPLAY.into()), display);
+    let mut editorial = vec!["Cormorant-Italic".to_string()];
+    editorial.extend(editorial_tail);
+    fonts.families.insert(FontFamily::Name(FONT_EDITORIAL.into()), editorial);
     fonts.families.entry(FontFamily::Monospace).or_default().extend(fallback("Regular"));
     fonts
 }
@@ -147,7 +176,7 @@ pub fn font_definitions(craft: &'static [lightcraft_engine::CraftFont]) -> FontD
 /// The embedded font families for the About box: Inter, plus the craft-fonts families when built
 /// with them.
 pub fn font_credits() -> String {
-    let mut families = vec!["Inter"];
+    let mut families = vec!["Rajdhani", "Bebas Neue", "Cormorant Garamond", "Inter"];
     for f in lightcraft_engine::CRAFT_FONTS {
         if !families.contains(&f.family) {
             families.push(f.family);
@@ -169,37 +198,40 @@ pub fn apply(ctx: &egui::Context) {
     v.extreme_bg_color = t.field;
     v.faint_bg_color = t.inset;
     v.window_stroke = Stroke::new(1.0, t.button_border);
-    v.window_corner_radius = CornerRadius::same(6);
-    v.menu_corner_radius = CornerRadius::same(6);
-    v.selection.bg_fill = t.accent.gamma_multiply(0.6);
+    // severe: radii are essentially zero (design system: chips and inputs 2 px at most)
+    v.window_corner_radius = CornerRadius::same(2);
+    v.menu_corner_radius = CornerRadius::same(2);
+    v.selection.bg_fill = t.accent.gamma_multiply(0.35);
     v.selection.stroke = Stroke::new(1.0, t.accent);
     v.override_text_color = Some(t.text_label);
-    v.popup_shadow = egui::epaint::Shadow { offset: [0, 4], blur: 16, spread: 0, color: Color32::from_black_alpha(140) };
-    v.window_shadow = egui::epaint::Shadow { offset: [0, 8], blur: 30, spread: 0, color: Color32::from_black_alpha(160) };
+    // matte: shadows only on floating overlays
+    v.popup_shadow = egui::epaint::Shadow { offset: [0, 8], blur: 24, spread: 0, color: Color32::from_black_alpha(140) };
+    v.window_shadow = egui::epaint::Shadow { offset: [0, 8], blur: 24, spread: 0, color: Color32::from_black_alpha(140) };
     let w = &mut v.widgets;
-    for (wv, fill) in [
-        (&mut w.noninteractive, t.chrome),
-        (&mut w.inactive, t.button),
-        (&mut w.hovered, t.hover),
-        (&mut w.active, t.pressed),
-        (&mut w.open, t.hover),
+    for (wv, fill, stroke_c) in [
+        (&mut w.noninteractive, t.chrome, t.divider),
+        (&mut w.inactive, t.button, t.button_border),
+        (&mut w.hovered, t.hover, t.text_label),
+        (&mut w.active, t.pressed, t.text),
+        (&mut w.open, t.hover, t.text_label),
     ] {
         wv.bg_fill = fill;
         wv.weak_bg_fill = fill;
-        wv.corner_radius = CornerRadius::same(4);
+        wv.corner_radius = CornerRadius::same(2);
         wv.fg_stroke = Stroke::new(1.0, t.text_label);
+        wv.bg_stroke = Stroke::new(1.0, stroke_c);
     }
-    w.noninteractive.bg_stroke = Stroke::new(1.0, t.divider);
-    w.inactive.bg_stroke = Stroke::new(1.0, t.button_border);
     ctx.set_visuals(v);
     ctx.global_style_mut(|s| {
         s.spacing.item_spacing = egui::vec2(6.0, 4.0);
         s.spacing.button_padding = egui::vec2(8.0, 3.0);
         s.spacing.interact_size.y = 22.0;
-        s.text_styles.insert(egui::TextStyle::Body, FontId::proportional(13.0));
-        s.text_styles.insert(egui::TextStyle::Button, FontId::proportional(13.0));
-        s.text_styles.insert(egui::TextStyle::Small, FontId::proportional(11.0));
-        s.text_styles.insert(egui::TextStyle::Heading, FontId::new(16.0, FontFamily::Name(FONT_SEMIBOLD.into())));
-        s.animation_time = 0.08;
+        // Rajdhani runs small for its point size: one point up from the Inter-era sizes
+        s.text_styles.insert(egui::TextStyle::Body, FontId::proportional(14.0));
+        s.text_styles.insert(egui::TextStyle::Button, FontId::proportional(14.0));
+        s.text_styles.insert(egui::TextStyle::Small, FontId::proportional(12.0));
+        s.text_styles.insert(egui::TextStyle::Heading, FontId::new(18.0, FontFamily::Name(FONT_SEMIBOLD.into())));
+        // matte motion: things settle, they don't bounce (design system: 140 ms)
+        s.animation_time = 0.14;
     });
 }
