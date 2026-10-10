@@ -34,6 +34,32 @@ jobs:
         run: |
           lipo -info target/macos-package/LightCraft.app/Contents/MacOS/LightCraft
           lipo -info target/macos-package/LightCraft.app/Contents/MacOS/LightCraft | grep -q "x86_64"
+      - name: Smoke test the Intel binaries on macOS (under Rosetta)
+        env:
+          RUST_LOG: info
+          LIGHTCRAFT_PROFILE: "1"
+        run: |
+          set -euo pipefail
+          /usr/sbin/softwareupdate --install-rosetta --agree-to-license >/dev/null 2>&1 || true
+          APP=target/macos-package/LightCraft.app/Contents/MacOS/LightCraft
+          CLI=target/macos-package/bin/lightcraft-cli
+          sw_vers; sysctl -n machdep.cpu.brand_string hw.memsize
+          file "$APP" "$CLI"
+          mkdir -p smoke
+          arch -x86_64 "$APP" --version
+          arch -x86_64 "$CLI" --version
+          arch -x86_64 "$CLI" run --demo app.export path="$PWD/smoke/demo.jpg" longEdge=4000 2>&1 | tee smoke/export.log
+          arch -x86_64 "$CLI" render smoke/demo.jpg -o smoke/edited.jpg \
+            --set light.exposure=0.5 --set light.highlights=-40 --set effects.clarity=30 --set effects.dehaze=20 2>&1 | tee smoke/render.log
+          arch -x86_64 "$CLI" snapshot --demo -o smoke/ui-1440x900.png --size 1440x900 2>&1 | tee smoke/snapshot.log
+          ls -l smoke
+          test -s smoke/demo.jpg && test -s smoke/edited.jpg && test -s smoke/ui-1440x900.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-smoke-test
+          path: smoke/
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
           name: lightcraft-air-x86_64-dmg
