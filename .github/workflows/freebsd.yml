@@ -2,15 +2,9 @@
 # (GitHub has no FreeBSD runners). GPU tests skip themselves when the VM has no adapter.
 name: FreeBSD
 
+# Air edition: upstream CI for other platforms, manual only (no push/PR/schedule runs that
+# would spend this repo's Actions minutes).
 on:
-  push:
-    branches: [main]
-  pull_request:
-    paths:
-      - Cargo.toml
-      - Cargo.lock
-      - "**/Cargo.toml"
-      - .github/workflows/freebsd.yml
   workflow_dispatch:
 
 concurrency:

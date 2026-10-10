@@ -1,10 +1,17 @@
-# Builds the Intel-only (x86_64, AVX2) LightCraft.app + .dmg for the 2020 MacBook Air.
-# Run it from Actions -> "Air DMG" -> Run workflow, then download the artifact.
+# Builds the Intel-only (x86_64) LightCraft.app + .dmg for the 2020 MacBook Air.
+# Runs on every push to main or air-edition, or from Actions -> "Air DMG" -> Run workflow (that
+# button appears once this file is on the default branch). Download the artifact from the run.
 # Ad-hoc signed: on first launch right-click the app -> Open (see docs/air/README.md).
 name: Air DMG
 
 on:
+  push:
+    branches: [main, air-edition]
   workflow_dispatch:
+
+concurrency:
+  group: air-dmg-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
