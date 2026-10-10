@@ -10,15 +10,14 @@ use crate::theme::Tokens;
 
 /// Letter-spaced text, laid out as one galley and anchored like `Painter::text`. `em` is the extra
 /// spacing in ems (the design system's eyebrow tracking is 0.22 em, tags 0.18 em). Returns the
-/// painted rect. The trailing space egui adds after the last glyph is trimmed so right-anchored
-/// text lines up with its neighbours.
+/// painted rect. egui adds the spacing between glyphs only (none after the last), so the galley's
+/// width is the true ink width and anchoring needs no correction.
 pub fn tracked_text(p: &egui::Painter, pos: egui::Pos2, align: Align2, text: &str, font: egui::FontId, color: Color32, em: f32) -> Rect {
     let spacing = font.size * em;
     let mut job = egui::text::LayoutJob::default();
     job.append(text, 0.0, egui::text::TextFormat { font_id: font, color, extra_letter_spacing: spacing, ..Default::default() });
     let galley = p.layout_job(job);
-    let size = vec2((galley.size().x - spacing).max(0.0), galley.size().y);
-    let rect = align.anchor_size(pos, size);
+    let rect = align.anchor_size(pos, galley.size());
     p.galley(rect.min, galley, color);
     rect
 }
@@ -28,7 +27,7 @@ pub fn tracked_width(p: &egui::Painter, text: &str, font: egui::FontId, em: f32)
     let spacing = font.size * em;
     let mut job = egui::text::LayoutJob::default();
     job.append(text, 0.0, egui::text::TextFormat { font_id: font, color: Color32::WHITE, extra_letter_spacing: spacing, ..Default::default() });
-    (p.layout_job(job).size().x - spacing).max(0.0)
+    p.layout_job(job).size().x
 }
 
 // ------------------------------------------------------------------ automation registry
@@ -268,6 +267,7 @@ pub fn slider(ui: &mut Ui, spec: &ControlSpec, value: f64, enabled: bool, label_
         t.thumb
     };
     // the thumb is a short bone bar, not a ring
+    p.rect_filled(Rect::from_center_size(pos2(tx, y), vec2(4.0, 16.0)), 0.0, Color32::BLACK);
     p.rect_filled(Rect::from_center_size(pos2(tx, y), vec2(2.0, 14.0)), 0.0, thumb_c);
     if hovered {
         ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
@@ -352,7 +352,8 @@ pub fn flyout_row(ui: &mut Ui, id: &str, title: &str, icon: Icon, open: bool) ->
 /// A small bordered text button (Auto, B&W, HDR…).
 pub fn text_button(ui: &mut Ui, id: &str, label: &str, active: bool) -> Response {
     let label = if id.starts_with("labelSet-") { label } else { crate::i18n::tr(label) };
-    let label_caps = label.to_uppercase();
+    // the user's own label-set names keep their case; built-in labels become tracked caps
+    let label_caps = if id.starts_with("labelSet-") { label.to_string() } else { label.to_uppercase() };
     let t = Tokens::get(ui.ctx());
     // tracked caps are wider than sentence case: tight tracking and padding keep rows of chips (the
     // export dialog's) inside the window
@@ -544,5 +545,32 @@ mod access_tests {
         assert!(found.iter().any(|(r, l, v)| r == "Slider" && l == "Exposure" && *v == Some(0.5)), "the slider's value: {found:?}");
         assert!(has("Button", "Auto"), "{found:?}");
         assert!(has("Button", "Delete mask"), "{found:?}");
+    }
+}
+
+#[cfg(test)]
+mod tracked_tests {
+    use super::{tracked_text, tracked_width};
+    use egui::{Align2, Color32, FontId, pos2};
+
+    /// egui puts letter spacing between glyphs, never after the last one: "AB" tracked is exactly one
+    /// gap wider than "AB" plain, and right-anchored text ends at its anchor.
+    #[test]
+    fn tracked_width_counts_only_the_gaps_between_glyphs() {
+        let ctx = egui::Context::default();
+        ctx.set_fonts(crate::theme::font_definitions(&[]));
+        // the first frame loads the fonts; measure in the second (as the i18n tests do)
+        let mut warm = ctx.run_ui(egui::RawInput::default(), |_| {});
+        warm.textures_delta.clear();
+        let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let p = ui.painter();
+            let font = FontId::proportional(20.0);
+            let plain = p.layout_no_wrap("AB".into(), font.clone(), Color32::WHITE).size().x;
+            let tracked = tracked_width(p, "AB", font.clone(), 0.5);
+            assert!((tracked - plain - 10.0).abs() < 0.5, "plain {plain}, tracked {tracked}");
+            let r = tracked_text(p, pos2(100.0, 50.0), Align2::RIGHT_CENTER, "AB", font, Color32::WHITE, 0.5);
+            assert!((r.right() - 100.0).abs() < 0.5 && (r.width() - tracked).abs() < 0.5, "{r:?}");
+        });
+        out.textures_delta.clear();
     }
 }

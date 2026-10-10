@@ -815,6 +815,24 @@ mod tests {
         assert!(!h.app.ui.visualize_spots);
     }
 
+    /// macOS (native menu bar, integrated title bar) on a 1440-pt-wide screen, the 2020 MacBook Air:
+    /// the GROOVEHAUS wordmark is shown and stays clear of the search field.
+    #[test]
+    fn wordmark_fits_beside_search_with_a_native_menu() {
+        let mut h = demo([1440.0, 900.0]);
+        h.app.native_menu = true;
+        h.app.integrated_titlebar = true;
+        let t = Duration::from_secs(10);
+        h.request("ui.set", json!({"view": "detail"}), t);
+        h.settle(SETTLE);
+        let r = h.request("ui.widgets", json!({}), t);
+        let rect = |id: &str| r["result"].as_array().and_then(|a| a.iter().find(|w| w["id"] == id)).map(|w| w["rect"].clone()).unwrap_or_default();
+        let (mark, search) = (rect("brand:wordmark"), rect("field:search"));
+        assert!(mark.is_array(), "no wordmark at 1440 pt with a native menu: {r}");
+        let mark_right = mark[0].as_f64().unwrap() + mark[2].as_f64().unwrap();
+        assert!(mark_right <= search[0].as_f64().unwrap(), "wordmark {mark} overlaps search {search}");
+    }
+
     /// Info panel: typing into a field survives frames and is saved when it loses focus; the new
     /// accessibility and place fields reach the photo.
     #[test]

@@ -20,11 +20,11 @@ pub fn show(app: &mut LightcraftApp, ui: &mut egui::Ui) {
         .show(ui, |ui| {
             let full = ui.max_rect();
             let mut sw = 640.0f32.min(full.width() - 460.0).max(200.0);
-            if !app.native_menu {
-                // leave room for the in-window menus left of the (centred) search field
-                let menus_right = full.left() + 140.0 + WORDMARK_W + crate::menubar::bar_width(ui) + 24.0;
-                sw = sw.min(2.0 * (full.center().x - menus_right)).max(200.0);
-            }
+            // leave room for the wordmark (and the in-window menus, without a native menu bar) left
+            // of the centred search field
+            let menus_w = if app.native_menu { 0.0 } else { crate::menubar::bar_width(ui) };
+            let left_right = full.left() + 140.0 + WORDMARK_W + menus_w + 24.0;
+            sw = sw.min(2.0 * (full.center().x - left_right)).max(200.0);
             let search_left = full.center().x - sw / 2.0;
             ui.horizontal_centered(|ui| {
                 ui.spacing_mut().item_spacing.x = 4.0;
@@ -40,9 +40,8 @@ pub fn show(app: &mut LightcraftApp, ui: &mut egui::Ui) {
                 if !app.native_menu || search_left - ui.cursor().left() > WORDMARK_W + 16.0 {
                     ui.add_space(14.0);
                     let (wr, _) = ui.allocate_exact_size(vec2(WORDMARK_W - 14.0, 30.0), Sense::hover());
-                    let g = ui.painter().layout_no_wrap("GROOVEHAUS".into(), t.display(24.0), t.text);
-                    let gw = g.size().x + 10.0 * 0.14 * 24.0;
-                    tracked_text(ui.painter(), wr.left_center(), Align2::LEFT_CENTER, "GROOVEHAUS", t.display(24.0), t.text, 0.14);
+                    register(ui.ctx(), "brand:wordmark", wr);
+                    let gw = tracked_text(ui.painter(), wr.left_center(), Align2::LEFT_CENTER, "GROOVEHAUS", t.display(24.0), t.text, 0.14).width();
                     ui.painter().text(pos2(wr.left() + gw + 8.0, wr.center().y), Align2::LEFT_CENTER, "\u{00b7}", t.font(14.0), t.text_label);
                     tracked_text(
                         ui.painter(),

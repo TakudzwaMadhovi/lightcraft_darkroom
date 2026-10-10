@@ -51,7 +51,7 @@ one sun-yellow accent per frame, hairline rules, square corners, no gloss.
 
 | Piece | Where |
 |---|---|
-| Palette (bone @ 55/42/30/25/18 % over black, sun #E9B547), metrics, radii, motion | `crates/ui-egui/src/theme.rs` (`Tokens`, `apply`) |
+| Palette (bone @ 55/50/30/25/18 % over black, sun #E9B547), metrics, radii, motion | `crates/ui-egui/src/theme.rs` (`Tokens`, `apply`) |
 | Fonts: Rajdhani (UI), Bebas Neue (headlines), Cormorant Garamond Italic (notes) | `assets/fonts/`, licence `OFL-Groovehaus-brand-fonts.txt`, `assets/ATTRIBUTION.md` |
 | Tracked-caps text, bar-thumb slider with centre tick, `+`/`−` section headers, outlined chips | `crates/ui-egui/src/widgets.rs` |
 | `01 — LIGHT` eyebrow + Bebas `EDIT` header | `crates/ui-egui/src/panels/edit.rs` |
@@ -61,8 +61,8 @@ one sun-yellow accent per frame, hairline rules, square corners, no gloss.
 
 Deliberate deviations from the mockup, for a working editor: the histogram keeps its red/green/blue
 channels (a monochrome histogram hides clipping per channel); the reject flag and mask overlay stay
-flame red (state needs a distinct colour); dim text is bone @ 42 % instead of 30 % (30 % on black is
-about 2.4:1 contrast, too faint for metadata you need to read); the tool strip keeps icons rather
+flame red (state needs a distinct colour); dim text is bone @ 50 % instead of 30 % (50 % is the
+lowest step with WCAG AA 4.5:1 contrast on black; 30 % is about 2.4:1); the tool strip keeps icons rather
 than three-letter labels.
 
 Not done: the **Bone** variant (cream surface, 32 px rounded floating cards, pill buttons, round slider

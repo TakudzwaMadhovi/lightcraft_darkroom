@@ -49,7 +49,9 @@ pub fn show(app: &mut LightcraftApp, ui: &mut egui::Ui) {
 
 /// Width of the centre group: the rating/flag pill, then Copy/Paste Edit Settings and its gear.
 const PILL_W: f32 = 196.0;
-const CENTRE_W: f32 = PILL_W + 10.0 + 136.0 + 4.0 + 30.0;
+/// The Copy/Paste Edit Settings chip (tracked caps).
+const COPY_W: f32 = 176.0;
+const CENTRE_W: f32 = PILL_W + 10.0 + COPY_W + 4.0 + 30.0;
 
 /// The rating/flag pill and copy/paste settings, between `from` and `to` (the side groups): the
 /// copy buttons go first when there is no room (they are in the Edit menu too), then the pill.
@@ -99,7 +101,7 @@ fn centre(app: &mut LightcraftApp, ui: &mut egui::Ui, full: Rect, from: f32, to:
     if !with_copy {
         return;
     }
-    let copy_r = Rect::from_min_size(pos2(pill.right() + 10.0, pill.top()), vec2(176.0, 30.0));
+    let copy_r = Rect::from_min_size(pos2(pill.right() + 10.0, pill.top()), vec2(COPY_W, 30.0));
     let has_clip = app.session.clipboard.is_some();
     let label = if has_clip { "Paste Edit Settings" } else { "Copy Edit Settings" };
     let cresp = ui.interact(copy_r, egui::Id::new("copy-settings"), Sense::click());

@@ -1,7 +1,7 @@
 //! Design tokens (colours, sizes, fonts). Air edition: the GROOVEHAUS "Darkroom" design system.
 //! Obsidian canvas, bone type, a single sun-yellow accent, hairline rules, square corners, no
 //! gloss. Three type voices: Rajdhani (system/UI), Bebas Neue (display), Cormorant Garamond
-//! italic (editorial). Source palette: bone #F2E9D5 at 55 % / 42 % / 30 % / 25 % / 18 % over black.
+//! italic (editorial). Source palette: bone #F2E9D5 at 55 % / 50 % / 30 % / 25 % / 18 % over black.
 
 use std::sync::Arc;
 
@@ -65,9 +65,9 @@ impl Default for Tokens {
             chrome: c(0x00, 0x00, 0x00),
             canvas: c(0x00, 0x00, 0x00),
             grid_bg: c(0x00, 0x00, 0x00),
-            cell: c(0x1c, 0x1c, 0x1c), // ash
-            cell_selected: c(0x1c, 0x1c, 0x1c),
-            divider: c(0x2c, 0x2a, 0x26), // bone @ 18 %
+            cell: c(0x1c, 0x1c, 0x1c),          // ash
+            cell_selected: c(0x2c, 0x2a, 0x26), // bone @ 18 %: selection must differ from `cell`
+            divider: c(0x2c, 0x2a, 0x26),       // bone @ 18 %
             inset: c(0x0b, 0x0b, 0x0a),
             field: c(0x00, 0x00, 0x00),
             field_border: c(0x3d, 0x3a, 0x35), // bone @ 25 %
@@ -78,7 +78,7 @@ impl Default for Tokens {
             tool_active: c(0x1c, 0x1c, 0x1c),
             text: c(0xf2, 0xe9, 0xd5),          // bone
             text_label: c(0x85, 0x80, 0x75),    // bone @ 55 %
-            text_dim: c(0x66, 0x62, 0x59),      // bone @ 42 % (30 % in the mockup; lifted for legibility)
+            text_dim: c(0x79, 0x74, 0x6a),      // bone @ 50 %: 4.5:1 on black (the mockup's 30 % is 2.4:1)
             text_disabled: c(0x3d, 0x3a, 0x35), // bone @ 25 %
             icon: c(0x85, 0x80, 0x75),
             track: c(0x49, 0x46, 0x40), // bone @ 30 %
@@ -234,4 +234,39 @@ pub fn apply(ctx: &egui::Context) {
         // matte motion: things settle, they don't bounce (design system: 140 ms)
         s.animation_time = 0.14;
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Tokens;
+
+    /// WCAG relative luminance of an sRGB colour.
+    fn luminance(c: egui::Color32) -> f32 {
+        let lin = |v: u8| {
+            let v = f32::from(v) / 255.0;
+            if v <= 0.039_28 { v / 12.92 } else { ((v + 0.055) / 1.055).powf(2.4) }
+        };
+        0.2126 * lin(c.r()) + 0.7152 * lin(c.g()) + 0.0722 * lin(c.b())
+    }
+
+    fn contrast(a: egui::Color32, b: egui::Color32) -> f32 {
+        let (la, lb) = (luminance(a), luminance(b));
+        (la.max(lb) + 0.05) / (la.min(lb) + 0.05)
+    }
+
+    #[test]
+    fn readable_text_meets_wcag_aa_on_the_chrome() {
+        let t = Tokens::default();
+        for (name, c) in [("text", t.text), ("text_label", t.text_label), ("text_dim", t.text_dim), ("accent", t.accent)] {
+            let r = contrast(c, t.chrome);
+            assert!(r >= 4.5, "{name} is {r:.2}:1 on the chrome");
+        }
+    }
+
+    #[test]
+    fn selected_cells_differ_from_unselected_ones() {
+        let t = Tokens::default();
+        assert_ne!(t.cell, t.cell_selected);
+        assert_ne!(t.canvas, t.cell_selected, "filmstrip selection is drawn on the canvas");
+    }
 }
