@@ -1,0 +1,34 @@
+# Builds the Intel-only (x86_64, AVX2) LightCraft.app + .dmg for the 2020 MacBook Air.
+# Run it from Actions -> "Air DMG" -> Run workflow, then download the artifact.
+# Ad-hoc signed: on first launch right-click the app -> Open (see docs/air/README.md).
+name: Air DMG
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dmg:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: air-x86_64
+      - name: Build and package (x86_64 only)
+        run: packaging/macos/package.sh --arch x86_64
+      - name: Verify architecture
+        run: |
+          lipo -info target/macos-package/LightCraft.app/Contents/MacOS/LightCraft
+          lipo -info target/macos-package/LightCraft.app/Contents/MacOS/LightCraft | grep -q "x86_64"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lightcraft-air-x86_64-dmg
+          path: dist/release/*.dmg
+          if-no-files-found: error
